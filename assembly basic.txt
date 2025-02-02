@@ -1,0 +1,204 @@
+/*
+i.	Define a structure with the following variables to store student information.
+	first_name (string), last_name (string), class (int) and grades (int array)  	(DONE)
+ii.	Create the struct variable with the following values:
+	"Siti", "Aminah", 5 and [67, 59, 71, 92, 85, 63, 82]							(DONE)
+iii.	Create a subroutine to get element from an array.							(DONE)
+iv.	Create a subroutine to determine the average and median grade of a student.
+v.	Create a subroutine to determine the maximum and minimum grade of a student.
+vi.	Display the student’s first name and last name.									(DONE)
+vii.	Get and display the first or last value in the array.						(DONE)
+viii.	Get and display the student’s maximum and minimum grades.					(DONE)
+ix.	Get and display the student’s average and median grades.
+
+*/
+
+		.data
+mesg1:	.asciz	"First name: %s\n"
+mesg2:	.asciz	"Last name: %s\n"
+mesg3:	.asciz	"Class: %d\n"
+mesg4:	.asciz	"First value of the array is: %d\n"
+mesg5:	.asciz	"Maximum grade: %d\n"
+mesg6:	.asciz	"Minimum grade: %d\n"
+mesg7:	.asciz	"Student average grades: %d\n"
+mesg8:	.asciz	"Student median grades: %d\n"
+mesg10: .asciz	"Last value of the array is: %d\n"
+mesg11: .asciz	"Maximum value of the array is: %d\n"
+mesg12: .asciz	"Minimum value of the array is: %d\n"
+
+fname:	.asciz	"Siti"
+lname:	.asciz	"Aminah"
+classes: .word	5
+grade:	.word	60, 59, 71, 92, 85, 63, 82
+
+		.text
+		.equ	s_first_name, 0			//offset for first name
+		.equ	s_last_name, 32			//offset for last name
+		.equ	s_class, 64				//offset for class
+		.equ	s_grades, 80 			//offset for grades
+		.equ	s_student_alligned, 128	//Ensure alignment (16-byte aligned)
+
+		.type	average_grade, %function
+average_grade:
+		mov			x0, #s_grades				//
+		mov			x20, #0						// Counter
+		ldr			x1, [x19, x0]				// Initial value
+		sum_loop:
+		cmp			x20, #6						// Compare
+		bge			end_sum						// Exit to end_sum
+		add			x0, x0, #4					// Increment address
+		ldr			x2, [x19, x0]				// Load next value
+		add			x1, x1, x2					// Add both number
+		add			x20, x20, #1				// Increment counter
+		b			sum_loop
+		end_sum:
+		mov			x2, #7
+		udiv		x0, x1, x2
+		ret
+		.type	store_array, %function
+store_array:
+		arr_loop:
+		cmp			x20, #28					// Compare
+		bge			end							// Exit to end
+		ldr			w1, [x0, x20]				// Load from array x0, into w1
+		str			w1, [x19, x21]				// Store value in structure
+		add			x20, x20, #4
+		add			x21, x21 ,#4
+		b			arr_loop
+		end:
+		end_store:
+		ret								//Return to caller
+
+		.type	disp_max_grade, %function
+disp_max_grade:
+
+		mov			x20, #0					   // i
+
+		mov			x0, #s_grades			   // Store value student.grade
+	    ldr         w1, [x19, x0]       	   // Load the first grade
+		find_max:
+		cmp			x20, #6						//Compare with counter
+		bge			end_disp_max_grade			//If(i<7) exit function
+		add			x0, x0, #4					//Increment the address of the array
+		ldr			w3, [x19, x0]				//Load new value from the array
+		cmp			w3, w1						//Compare first and second value
+		ble			skip_max					//if array <= max, skip updating max
+		mov			w1, w3						//Update max value
+
+		skip_max:
+		add			x20, x20, #1
+		b			find_max
+
+		end_disp_max_grade:
+		ret										//Return to caller
+
+
+		.type	disp_min_grade, %function
+disp_min_grade:
+
+		mov			x20, #0					   // i
+
+		mov			x0, #s_grades			   // Store value student.grade
+	    ldr         w1, [x19, x0]       	   // Load the first grade
+		find_min:
+		cmp			x20, #6						//Compare with counter
+		bge			end_disp_min_grade			//If(i<7) exit function
+		add			x0, x0, #4					//Increment the address of the array
+		ldr			w3, [x19, x0]				//Load new value from the array
+		cmp			w1, w3						//Compare first and second value
+		ble			skip_min					//if array <= max, skip updating max
+		mov			w1, w3						//Update max value
+
+		skip_min:
+		add			x20, x20, #1
+		b			find_min
+
+		end_disp_min_grade:
+		ret										//Return to caller
+
+		.type	main, %function
+		.global	main
+
+main:
+
+		stp			x29, x30, [sp, #-16]!
+
+		str			x19, [sp, #-16]!
+		sub			sp, sp, #s_student_alligned
+		mov			x19, sp
+
+		//Store first name
+		add			x0, x19, #s_first_name	//destination
+		adr			x1, fname				//source
+		bl			strcpy					//call function
+
+		//Store last name
+		add			x0, x19, #s_last_name	//destination
+		adr			x1, lname				//source
+		bl			strcpy					//call function
+
+
+		//Store class
+		adr         x0, classes				// Load the address of 'class'
+		ldr         w1, [x0]           		// Load the value of 'class' into w1
+    	str	        w1, [x19, #s_class] 	// Store the value in student.class (byte-sized field)
+
+		// Store array grade
+		adr			x0, grade				// Address of grade array
+		mov			x20, #0					// Counter
+		mov			x21, #s_grades			// Address to student.grade
+		bl			store_array				// Call function to store the array in student.grade
+
+		//Retrieve first name
+		adr			x0, mesg1				// Address to mesg1 "First name: %s\n"
+		add			x1, x19, #s_first_name	// Add the sp with the s_first_name and store in x1
+		bl			printf					// Call printf
+
+		//Retrieve last name
+		adr			x0, mesg2				// Address to mesg2 "Last name: %s\n"
+		add			x1, x19, #s_last_name	// Add the sp with the s_last_name and store in x1
+		bl			printf					// Call printf
+
+		//Retrieve class
+		adr			x0, mesg3				// Address to mesg3 "Class: %d\n"
+		ldrb		w1, [x19, #s_class]		// Load the value from the student.class t0 w1
+		bl			printf					// Call printf
+
+		// Retrieve first value of grades
+		mov			x2, #s_grades			   // Store value student.grade
+	    adr         x0, mesg4                  // Message: "First value of the array is: %d\n"
+	    ldr         w1, [x19, x2]       	   // Load the first grade
+	    bl          printf                     // Print the first grade
+
+	    // Retrieve last value of grades
+		mov			x2, #s_grades			   // Store value student.grade
+		add			x2, x2, #24
+	    adr         x0, mesg10                  // Message: "First value of the array is: %d\n"
+	    ldr         w1, [x19, x2]       	   // Load the first grade
+	    bl          printf                     // Print the first grade
+
+		// Retrieve max value of the grade
+		bl			disp_max_grade				//Call disp_max_grade
+		mov			w1, w1
+		adr			x0, mesg11
+		bl			printf
+
+		// Retrieve min value of the grade
+		bl			disp_min_grade				//Call disp_min_grade
+		mov			w1, w1
+		adr			x0, mesg12
+		bl			printf
+
+		// Retrieve average of the grade
+		bl			average_grade
+		mov			x1, x0
+		adr			x0, mesg7
+		bl			printf
+
+
+		add			sp, sp, #s_student_alligned
+		ldr			x19, [sp], #16
+
+		mov 		w0, #0                        //needed to run on docker
+    	ldp 		x29, x30, [sp], #16           //needed to run on docker
+    	ret
